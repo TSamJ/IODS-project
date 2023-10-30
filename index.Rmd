@@ -1,5 +1,6 @@
 ---
 title: "IODS course project"
+author: "Tuomas Junna"
 output:
   html_document:
     theme: cosmo
