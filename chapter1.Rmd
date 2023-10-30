@@ -1,15 +1,10 @@
 
 # About the project
 
-*Write a short description about the course and add a link to your GitHub repository here. This is an R Markdown (.Rmd) file so you should use R Markdown syntax.*
 
-```{r}
-# This is a so-called "R chunk" where you can write R code.
+This project consists of coursework completed on the **PHD-302 Introduction to Open Data Science** course. It will consist of weekly assingments that will compiled into a learning diary. 
 
-date()
+The following project is stored in Github, and can be found can be found from the following URL:\
+<link url> https://github.com/TSamJ/IODS-project
 
-```
-The text continues here.
-
-Test
 
