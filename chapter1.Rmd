@@ -47,7 +47,7 @@ Test pushes have been succesful.
 
 6. 
 
-The results are hopefully visible. 
+The results are hopefully visible, if github ever updates. 
 
 
 
