@@ -7,6 +7,11 @@ This project consists of coursework completed on the **PHD-302 Introduction to O
 The following project is stored in Github, and can be found can be found from the following URL:\
 <link url> https://github.com/TSamJ/IODS-project
 
+1.
+
+Everything seems to be in working order with the repository, course diary and local folder being accounted for. 
+
+2. 
 
 I am feeling like a PhD-student: tired, stressed and equipped with an imposter-syndrome big enough to black out the sun. So everything is in order in that regard. But I am feeling very positive about this course. I have recently
 started working with big datasets and getting to know R. I hope to learn much more about statistical tests, clustering and dimensionality reduction such as PCA. I'm fairly confident that this course will eventually save me tons of time and even much more nerves, as finding solutions from stackoverflow does very little to actually familiarize a beginner
@@ -27,5 +32,23 @@ with but I was happy to get a better grasp of the reasoning behind some commands
 I do not know how the book compares to stack overflow. Naturally, it will be less hands on and thus slightly less effective as a learning tool, but then again, I believe
 that in the long run it will serve as a much nicer resource to refer back to. So far, I've mostly appreciated the somewhat good explanations between different basic commands, but 
 feel they could do more here. For example `case_when` is ignored but highly useful. Also, can I do conditional statements between two dataframes without joining? Is there a workaround to get multiple values on the same axis with unique free scales?
+
+3. 
+
+Index.Rmd has been updated with the author name. Would this not be a more logical place for the github link?
+
+4. 
+
+I followed the instruction and generated a new token. However, as I had previously generated a token during the initial setup of Git / Rstudio interaction, I already had an associated token password and was able to push to git prior to completing the step. Thus I was not able to give the password to the console, just review my previously set token.
+
+5. 
+
+Test pushes have been succesful. 
+
+6. 
+
+The results are hopefully visible. 
+
+
 
 
