@@ -1,8 +1,46 @@
-# Insert chapter 2 title here
+# Data wrangling, regression and model validations
 
-*Describe the work you have done this week and summarize your learning.*
 
-- Describe your work and results clearly. 
+
+## Data wrangling
+
+I started with the data wrangling assignment prior to opening the Exercise2 practice set, so initially my solutions
+were slightly different compared to those depicted to those in the exercise. However, I did learn that in the future I will check out the exercises first in order to save a lot of time wondering what the assignment description is asking for.
+
+The produced R script can be found from my Github with the name Assignement2_data_Junna.R and the created dataset is named learning_2014.csv to differentiate from the learning2014.csv dataset provided in the exercise. 
+
+I started by reading in the relevant libraries (dplyr and tidyverse), creating the data folder into my IODS project and setting the working directory to my IODS project folder using `setwd()`.  Then I read in the data from the internet using
+
+`df <- read.delim("http://www.helsinki.fi/~kvehkala/JYTmooc/JYTOPKYS3-data.txt", header = TRUE, sep = "\t")`
+
+A different function from the `read.table()` present in the exercises, but it turned out working none the less. However, 
+I am unclear what the fundamental differences between these are. 
+
+Whenever I see a new dataset, there are few checks I like to do. Typically, I initially check it using the `head(df, 10)` function, just to get an idea of what I am dealing with. My next step was to check the structure of the data using `str()` to see if I was dealing with a multitude of data types. Luckily, apart from gender, all integers here. Next I wanted to know if there are any gaps in the data by using `na.rm(df)` I believe this is the first time I actually a complete dataset loaded in R without making it happen! Nice!
+
+I proceeded to check the headers using `head()` and briefly wondered about the possibility of whether this is a gender binary data by checking `n_distinct(df$gender)`. I did a DF `summary()` and concluded that this is likely survey data (or normalized values due to most being between 1 and 5).  Last and definitely least, I checked the dimension of the dataset using the `dim()` funtion. As predicted, it did match the dimensions that were displayed in the environment window of Rstudio with 183 observations of a total 60 variables.
+
+Checking the metadata present 
+
+I scaled down the Attitude points using a pipe, as that somehow is my go to solution even if I do just one thing. I simply prefer the syntax over spilling dollar signs everywhere. So I did: 
+
+`df <- df %>%`
+`mutate(attitude = (Attitude /10))`
+
+I then stopped wasting time and opened the exercise sheet. As I did the exercises, I was very impressed to realize that we had the relevant values picked for all combination groups of deep, strategic and surface questions. I very much appreciate the fact that we did not have to spend time picking these from some apocryphal metadata file. Thank you exercise designer! 
+
+So the variables very grouped together using `element <- c(1,2,5,etc)` , the element was selected using `select()` with the superseded selection helper `one_of` targeting the previously created element. The end result was scaled to a mean value of all grouped variables using the `mean` and the mean of all grouped variables were included into the DF as new variables names deep, surf and strat.  I found this a fairly eloquent solution as I would've probably hit the problem with some kind of a pipe again.
+
+Last, the headers were tidied by removing some unnecessary capital letters in the header using `colnames()`, filtered out the variables where values were 0 by using `filter(df, points > 0)` and a separate df for males was created by filtering for the character `filter(df, gender == "M")`. The latter has not been used so far. 
+
+The end result is a dataframe with dimensions 166 observations in 7 variables, as was the target. It has uniform lack of capital letters in the headers, simple and quick to write header titles, no gaps and apart from gender, double precision floating point and integer data in nice form with no missing values.
+
+As the working directory was set in the beginning of the script, the data was saved by
+`write_csv(learning2014, file = "data/learning_2014.csv")` , read back into Rstudio by `df_test <- read_csv("data/learning_2014.csv")` and checked for structure and headers to make sure everything was in order. 
+
+To reflect back on the data wrangling exercise, I found it made me spend my time well and the exercise was nice in that was simple, quick and educational. It put effort into tidy and good data practices. I personally did not feel I gained much out of this one as I've spent the last 8 months wrangling a horrendous, problem riddled dataset collected over 20 years in various studies into some kind of form, so I kind of knew what to do here beforehand. However, I did like some solutions here that I personally would've done differently just out of habit and lack of R training.  Had I known these solutions beforehand, they would've likely grown into my R "go-to" commands earlier. Then again, had I known what I know about my data, I might've become a Subway Sandwich artist instead of a PhD student...
+
+
 - Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods.
 - Assume the reader has no previous knowledge of your data or the more advanced methods you are using.
 
