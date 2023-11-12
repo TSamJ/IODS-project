@@ -7,7 +7,7 @@
 I started with the data wrangling assignment prior to opening the Exercise2 practice set, so initially my solutions
 were slightly different compared to those depicted to those in the exercise. However, I did learn that in the future I will check out the exercises first in order to save a lot of time wondering what the assignment description is asking for.
 
-The produced R script can be found from my Github with the name Assignement2_data_Junna.R and the created dataset is named learning_2014.csv to differentiate from the learning2014.csv dataset provided in the exercise. 
+*The produced R script can be found from the end of this document as APPENDIX 1, my Github with the name Assignment2_data_Junna.R and the created dataset is named learning_2014.csv to differentiate from the learning2014.csv dataset provided in the exercise.
 
 I started by reading in the relevant libraries (dplyr and tidyverse), creating the data folder into my IODS project and setting the working directory to my IODS project folder using `setwd()`.  Then I read in the data from the internet using
 
@@ -19,8 +19,6 @@ I am unclear what the fundamental differences between these are.
 Whenever I see a new dataset, there are few checks I like to do. Typically, I initially check it using the `head(df, 10)` function, just to get an idea of what I am dealing with. My next step was to check the structure of the data using `str()` to see if I was dealing with a multitude of data types. Luckily, apart from gender, all integers here. Next I wanted to know if there are any gaps in the data by using `na.rm(df)` I believe this is the first time I actually a complete dataset loaded in R without making it happen! Nice!
 
 I proceeded to check the headers using `head()` and briefly wondered about the possibility of whether this is a gender binary data by checking `n_distinct(df$gender)`. I did a DF `summary()` and concluded that this is likely survey data (or normalized values due to most being between 1 and 5).  Last and definitely least, I checked the dimension of the dataset using the `dim()` funtion. As predicted, it did match the dimensions that were displayed in the environment window of Rstudio with 183 observations of a total 60 variables.
-
-Checking the metadata present 
 
 I scaled down the Attitude points using a pipe, as that somehow is my go to solution even if I do just one thing. I simply prefer the syntax over spilling dollar signs everywhere. So I did: 
 
@@ -41,11 +39,356 @@ As the working directory was set in the beginning of the script, the data was sa
 To reflect back on the data wrangling exercise, I found it made me spend my time well and the exercise was nice in that was simple, quick and educational. It put effort into tidy and good data practices. I personally did not feel I gained much out of this one as I've spent the last 8 months wrangling a horrendous, problem riddled dataset collected over 20 years in various studies into some kind of form, so I kind of knew what to do here beforehand. However, I did like some solutions here that I personally would've done differently just out of habit and lack of R training.  Had I known these solutions beforehand, they would've likely grown into my R "go-to" commands earlier. Then again, had I known what I know about my data, I might've become a Subway Sandwich artist instead of a PhD student...
 
 
-- Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods.
-- Assume the reader has no previous knowledge of your data or the more advanced methods you are using.
+## Regression and model validation
+
+I started this part of the exercise loading the instructed dataset from the internet. While I could've used the dataframe previously created, I find it best practice to use a verified source in case something goes haywire (wrong delianeator or some such thing. )
 
 ```{r}
-date()
+
+#Add some libraries
+
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(GGally)
+
+
+#Read data into a frame called learning2014
+
+learning2014 <- read.table("https://raw.githubusercontent.com/KimmoVehkalahti/Helsinki-Open-Data-Science/master/datasets/learning2014.txt",
+                            sep = ",", header = T)
+
+#Check the structure and dimensions of the dataframe
+
+str(learning2014)
+
+head(learning2014)
+
+summary(learning2014)
 ```
 
-Here we go again...
+The dataframe appears to be identical to the one I have previously created and described with 166 observations in 7 variables. Apart from gender being represented by either M of F character, it contains numerical values with  integers in variables "age" and "points" and double float point numerics in variables in "attitude", "deep", "stra" and "surf". The variables "age" and "gender" are relatively self explanatory, but essentially this is survey query data where points from certain questions were grouped together and normalized to represent different types of learning and attitude towards learning such as strategic learning and planning, surface learning, deep learning and general attitude. These double floating point values range between 1 and 5. The points category is the exam scores ranging between 7 and 33, with median score being 23.
+
+From summary of the data 
+
+Next are some graphical representations of the data. Lets see about the age distribution first:
+
+
+
+```{r}
+
+ggplot(learning2014, aes(x = age)) +
+  geom_histogram(binwidth = 5, fill = "blue", color = "black", alpha = 0.7) +
+  ggtitle("Histogram of age in learning2014 dataset")
+
+
+```
+As we can see, the dataset is heavily representing people in their 20's, with maximum age being 55 years old. This is also seen where the median age of study subjects is 22, the mean age is 25 and half years. 
+
+
+```{r}
+
+ggplot(learning2014, aes(x = points)) +
+  geom_histogram(binwidth = 5, fill = "red", color = "black", alpha = 0.7) +
+  ggtitle("Histogram of total points in learning2014 dataset")
+
+
+```
+The distribution of total point scores is skewed to the right, representing the relatively high mean and median values compared to the summaried minimum scores.
+
+```{r}
+
+#Compare the summaried variables 
+
+#Select variables into their own dataframe
+df_learn <- learning2014 %>% 
+  select(attitude, deep, stra, surf)
+
+# Reshape the data from wide to long format using gather 
+data_long <- gather(df_learn, key = "Variable", value = "Value")
+
+# Create a violin plot using ggplot2
+ggplot(data_long, aes(x = Variable, y = Value, fill = Variable)) +
+  geom_violin() +
+  facet_wrap(~Variable, scales = "free_y", ncol = 2) +
+  theme_minimal()
+
+```
+
+The distribution ofnormalized indicator scores is much more normal, with highest mean scores achieved in strategic
+ (3.121) and attitude (3.143) categories and lowest in surface learning category (2.787). Appears we are dealing
+ with bunch of folk with great attitude and strategic learning tactics. Life will surely cure the former given some time.
+ 
+ Now, rooting for the people who raise the bar just so they don't have bend while going under it, I wish to focus on the surface and attitude markers further. I create a linear regression model with attitude being the explanatory variable and see if bad attitude comes with lame duck efforts. However, prior to actual model fitting, I want to visually explore it beforehand to see how the attitude and surface learning points relate to exam scores by pure visual plotting.
+ 
+ 
+```{r}
+ 
+
+# create a more advanced plot matrix with ggpairs()
+matrix <- ggpairs(learning2014, mapping = aes(col = gender, alpha = 0.3), lower = list(combo = wrap("facethist", bins = 20)))
+
+# draw the plot
+matrix
+
+# define the visualization type (points)
+matrix2 <- matrix + geom_point()
+ 
+```
+
+The covariance matrix easily allows us to compare the variables in the dataset against each other. Notable is the difference in male attitude peak shape, where fewer males score lesser attitude points. Another meaningful gendered difference is in surface learning category, where the male distribution bell curve is much wider, whereas female scores tend to group more heavily towards the middle.  These categories just became more interesting. However, as proof is in the pudding and we are here looking for maximum exam scores, it is notable that the points show best and positive correlation with attitude, wherereas other coefficients are significantly lower. Surface learning, seems to negatively affect outcomes whereas stategic learning has slight positive corellation. Deep learning appears seems to have little to no bearing on exam results.
+
+The two interesting categories are plotted out a single variable linear plots.
+
+```{r}
+
+#Compare the summaried variables 
+
+# Plot attitude versus points
+p1 <- ggplot(learning2014, aes(x = attitude, y = points))+
+  geom_point() +
+  geom_smooth(method = "lm")
+
+#Plot surface versus points
+
+p2 <- ggplot(learning2014, aes(x = surf, y = points))+
+   geom_point() +
+  geom_smooth(method = "lm")
+
+p1
+
+p2
+```
+
+Here we can see that having a good attitude would appear to correlate with better exam results. Much more surprising is the latter plot of surface learning category. While test scores do tend to go down with superficial learning habits, the correlation is not stark, and quite frankly, the exam scores all over the place. 
+
+This is explored further by making a linear regression model. I will choose the exam points as the target variable and surface learning and attitude as the explanative variables. Due to instruction limitations, I will add in strategic learning to have three. 
+
+```{r}
+
+# create a regression model with multiple explanatory variables
+my_model2 <- lm(points ~ attitude + surf +stra, data = learning2014)
+
+# print out a summary of the model
+
+summary(my_model2)
+```
+
+So, here we have the relevant parts summarized as far it pertains to the model: 
+
+**Residuals**  represent the differences between the observed values and the values predicted by the model. The spread and distribution of residuals give insights into how well the model fits the data. We have a minimum of -17 and maximum of almost 11. However, this is hardly surprising as we saw relatively wide variation in exam scores for example in the surface learning category. The summary statistics (Min, 1Q, Median, 3Q, Max) describe the spread and central tendency of these residuals.
+
+The **coefficients** section shows the estimated coefficients for the intercept and the variables (attitude, surf, and stra).
+The intercept is estimated to be 11.0171.
+The coefficient for attitude is 3.3952, indicating that for a one-unit increase in attitude, one would expect an increase of approximately 3.3952 units in the dependent exam scores.
+The coefficient for surf is -0.5861, suggesting a negative association. Meaning more surface learning focus, less points in the exam It is arguably not statistically significant due to lower p-value (p-value = 0.46563).
+The coefficient for stra is 0.8531, suggesting a positive association. However, the statistical significance is not very good (p-value = 0.11716).
+
+The "Pr(>|t|)" column provides p-values for the hypothesis test that each coefficient is equal to zero. In this case, attitude is statistically significant (p-value = 1.93e-08), while surf and stra are not.
+
+**Residual Standard Error** is an estimate of the standard deviation of the residuals. In this model, it's 5.296. It gives you an idea of the average magnitude of the errors in the model.
+
+**R-squared** measures the proportion of variance in the dependent variable that is explained by the independent variables. In this model, R-squared is 0.2074, indicating that approximately 20.74% of the variance in points is explained by the attitude, surf, and stra variables. The adjusted R-squared accounts for the number of predictors in the model and is 0.1927.
+
+The **F-statistic** tests the overall significance of the model. The F-statistic is 14.13 with a very low p-value (3.156e-08), suggesting that the model as a whole is statistically significant.The variable "attitude" is statistically significant and has a positive association with points.
+The variables "surf" and "stra" are not statistically significant, and their coefficients are not different from zero at conventional significance levels.
+
+
+However, as we were ordered to look for statistically important criteria, I guess I will repeat the process with less inspiring and interesting variables
+
+
+```{r}
+# create a regression model with multiple explanatory variables
+my_model3 <- lm(points ~ attitude + deep +stra, data = learning2014)
+
+# print out a summary of the model
+
+summary(my_model3)
+```
+Now if we look at coefficients, for deep coefficient is -0.7492, but it is not statistically significant (p-value = 0.31974).
+For strategic learning, the coefficient is 0.9621, but it is marginally significant (p-value = 0.07489).
+
+The "Signif. codes" column indicates the significance level of each coefficient. In this case, attitude and the intercept are highly significant (***), deep is not significant (0.05), and stra is marginally significant (0.1).  R-squared is 0.2097, indicating that approximately 20.97% of the variance in points is explained by the variables included in the model. The F-statistic is 14.33 with a very low p-value (2.521e-08), suggesting that the model as a whole is statistically significant.
+
+So basically by including the least significant predictor, deep, we likely just simplified the model slightly to appear a tiny bit more predictive. 
+
+Having all explanatory variables be statistically significant appears to be a foregone conclusion using this dataset.
+
+Unless...
+
+```{r}
+# create a regression model with multiple explanatory variables
+my_model4 <- lm(surf ~ attitude  + deep +stra, data = learning2014)
+
+# print out a summary of the model
+
+summary(my_model4)
+```
+Well, there we have it. 
+
+attitude: The coefficient is -0.09792, and it is marginally significant (p-value = 0.0675).
+deep: The coefficient is -0.28338, and it is statistically significant (p-value = 8.44e-05).
+stra: The coefficient is -0.08494, and it is marginally significant (p-value = 0.0927).
+
+R-squared is 0.1398, indicating that the variables included in the model explain about 13.98% and F-statistic is 8.778 with a very low p-value (1.987e-05), suggesting that the model as a whole is statistically significant.
+
+So we could have all variables be statistically significant. But as surface learning is very much another comparative category to the other learning categories, deep is a statistically significant predictor of surf and
+attitude and stra are marginally significant predictors of surf. The low R-squared values suggest that the model does not explain a large proportion of the variability in surf. So basically they take away from surface answers hence the correlation. 
+
+As this is a fools errand, I will return to **model2** as it was the one I found most interesting.
+
+
+```{r}
+# draw diagnostic plots using the plot() function. Choose the plots 1, 2 and 5
+
+par(mfrow = c(2,2))
+plot(my_model2, which = c(1,2,5))
+
+```
+In a linear regression analysis, the **residuals vs. fitted** plot  is a diagnostic tool that helps assess the goodness of fit of the model. The x-axis represents the fitted (predicted) values from the regression model. These are the values that  model predicts based on the independent variables.The y-axis represents the residuals, which are the differences between the observed values and the predicted values from the model. Mathematically, a residual is calculated as the observed value minus the predicted value. Each point on the plot corresponds to a data point in the dataset. It shows the relationship between the fitted values and the residuals.
+
+Ideally, in a well-fitted model, one would not observe a clear pattern in the residuals vs. fitted plot. The residuals should be scattered randomly around zero, indicating that the model captures the underlying patterns in the data. As you can see, this is not exactly the case. However, as there is a huge element of human performance in the data, it would take someone with an interest and experience in humanities to really assess whether this is normal in this kind of dataset. Points far from the main cluster may represent outliers or influential observations, possibly poor exam performance due to badly slept night or just occasional divergence from studying habits, who knows. However, there is a slight "funnel" like spread in the points, suggesting possible heteroscedasticity, suggesting that the variance of the residuals might not be constant across all levels of the independent variable.
+
+**A normal quantile-quantile (Q-Q)** plot is a graphical tool used to assess whether a given dataset follows a normal distribution. The Q-Q plot compares the quantiles of the observed data against the quantiles of a theoretical normal distribution. Each point on the plot represents a quantile of the observed data, the x-axis represents the theoretical quantiles expected from a normal distribution and the y-axis represents the observed quantiles from our dataset.
+
+The dashed diagonal line in the plot represents a perfect match between the observed quantiles and the expected quantiles of a normal distribution. If the points lie close to this line as they do for the most part, it suggest normal distribution as corroborated to some degree by the violin plots above. Points above the line are where values are higher than expected, indicating heavier tails than a normal distribution and the points below the line are where observed values are lower than expected, indicating lighter tails than a normal distribution.
+
+All in all, the fit is fairly decent and suggest normal distribution of data in these categories. 
+
+**The residuals vs. leverage plot**, also known as a Cook's distance plot, is a diagnostic tool used to identify influential observations in a linear regression model. This plot helps to detect observations that may disproportionately influence the estimated coefficients of the model.
+
+The x-axis represents the leverage of each observation. Leverage is a measure of how much an observation's predictor values differ from the mean of the predictor values. High leverage values indicate observations with very high predictor values. The y-axis represents the standardized residuals. Standardized residuals are the residuals divided by their standard deviation, providing a measure of how far each observation's response value is from its predicted value in terms of standard deviations. And like in the residuals vs fitted plot, the dots are the actual datapoints from the set.
+
+Observations with high leverage and high standardized residuals are potential outliers and can significantly influence the regression coefficients. Points in the upper right or lower right of the plot, especially those outside the Cook's distance lines, are considered influential. In our case, the lower results near the bottom of the diagram might throw our model off. Perhaps they are the preppy ones with great attitudes but who had a long night before the exam or the burnouts who don't care but got lucky in the exam? 
+
+
+
+# Appendix 1, R script for data wrangling
+
+## Do note that the R script is disabled by comment from writing a .csv file, as 
+
+
+```{r}
+
+#IODS Assingment 2 Data wrangling exercise
+#Author: Tuomas Junna
+#Date: 06.11.2023
+
+
+#Libraries for wrangling, tidyverse and dplyr
+
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(ggplot2)
+
+#Set working directory
+
+setwd("C:/Users/tjunna/OneDrive - Valtori GTK/Desktop/R/IODS/IODS-project")
+
+#Read tab delimited txt as df
+
+df <- read.delim("http://www.helsinki.fi/~kvehkala/JYTmooc/JYTOPKYS3-data.txt", header = TRUE, sep = "\t")
+
+#Check what it looks like
+
+head(df, 10)
+
+#Check the structure
+
+str(df)
+
+#All integers, apart from gender as characters
+
+# Check for missing values
+
+is.na(df)
+
+#Check dimensions
+
+dim(df)
+
+# 183 rows in 60 columns. Although this was evident looking at the environment window.
+
+#Check the names of the headers
+
+names(df)
+
+#Mostly gibberish apart from Age, Attitude, Points and gender. Let's check the amount
+#genders
+
+n_distinct(df$gender)
+
+# 2. Pretty vanilla. 
+
+#Ok a summary of it all then
+
+summary(df)
+
+#Small values in most. Normally, I would assume normalized data but more likely
+#questinnoire data Age, attitude and points being the difference. Age is self explanatory, 
+#two other could be sums of other values.
+
+# create column 'attitude' by scaling the column "Attitude"
+df <- df %>% 
+  mutate(attitude = (Attitude /10))
+
+# questions related to deep, surface and strategic learning
+deep_questions <- c("D03", "D11", "D19", "D27", "D07", "D14", "D22", "D30","D06",  "D15", "D23", "D31")
+surface_questions <- c("SU02","SU10","SU18","SU26", "SU05","SU13","SU21","SU29","SU08","SU16","SU24","SU32")
+strategic_questions <- c("ST01","ST09","ST17","ST25","ST04","ST12","ST20","ST28")
+
+# select the columns related to deep learning 
+deep_columns <- select(df, one_of(deep_questions))
+# and create column 'deep' by averaging
+df$deep <- rowMeans(deep_columns)
+
+# select the columns related to surface learning 
+surface_columns <- select(df, one_of(surface_questions))
+# and create column 'surf' by averaging
+df$surf <- rowMeans(surface_columns)
+
+# select the columns related to strategic learning 
+strategic_columns <- select(df, one_of(strategic_questions))
+# and create column 'stra' by averaging
+df$stra <- rowMeans(strategic_columns)
+
+# choose a handful of columns to keep
+keep_columns <- c("gender","Age","attitude", "deep", "stra", "surf", "Points")
+
+# select the 'keep_columns' to create a new dataset
+learning_2014 <- select(df, "gender","Age","attitude", "deep", "stra", "surf", "Points")
+
+# print out the column names of the data
+colnames(learning_2014)
+
+# change the name of the second column
+colnames(learning_2014)[2] <- "age"
+
+# change the name of "Points" to "points"
+
+colnames(learning_2014)[7] <- "points"
+
+
+# print out the new column names of the data
+
+names(learning_2014)
+
+# select male students
+male_students <- filter(learning_2014, gender == "M")
+
+# select rows where points is greater than zero
+learning_2014 <- filter(learning_2014, points > 0)
+
+#Write the data file
+write_csv(learning_2014, file = "data/learning_2014.csv")
+
+#Load in the created data frame to test functionality
+df_test <- read_csv("data/learning_2014.csv")
+
+str(df_test)
+
+head(df_test)
+
+```
