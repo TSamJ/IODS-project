@@ -8,10 +8,11 @@
 library(tidyverse)
 library(dplyr)
 library(readr)
+library(ggplot2)
 
 #Set working directory
 
-setwd("C:/Users/tjunna/OneDrive - Valtori GTK/Desktop/R/IODS")
+setwd("C:/Users/tjunna/OneDrive - Valtori GTK/Desktop/R/IODS/IODS-project")
 
 #Read tab delimited txt as df
 
@@ -30,8 +31,6 @@ str(df)
 # Check for missing values
 
 is.na(df)
-
-#Seems complete
 
 #Check dimensions
 
@@ -86,44 +85,37 @@ df$stra <- rowMeans(strategic_columns)
 keep_columns <- c("gender","Age","attitude", "deep", "stra", "surf", "Points")
 
 # select the 'keep_columns' to create a new dataset
-learning2014 <- select(df, "gender","Age","attitude", "deep", "stra", "surf", "Points")
+learning_2014 <- select(df, "gender","Age","attitude", "deep", "stra", "surf", "Points")
 
 # print out the column names of the data
-colnames(learning2014)
+colnames(learning_2014)
 
 # change the name of the second column
-colnames(learning2014)[2] <- "age"
+colnames(learning_2014)[2] <- "age"
 
 # change the name of "Points" to "points"
 
-colnames(learning2014)[7] <- "points"
+colnames(learning_2014)[7] <- "points"
 
-min(df)
 
 # print out the new column names of the data
 
-names(learning2014)
+names(learning_2014)
 
 # select male students
-male_students <- filter(learning2014, gender == "M")
+male_students <- filter(learning_2014, gender == "M")
 
 # select rows where points is greater than zero
-learning2014 <- filter(learning2014, points > 0)
+learning_2014 <- filter(learning_2014, points > 0)
 
+#Write the data file
+write_csv(learning_2014, file = "data/learning_2014.csv")
 
-write_csv(learning2014, file = "data/learning_2014.csv")
-
+#Load in the created data frame to test functionality
 df_test <- read_csv("data/learning_2014.csv")
 
 str(df_test)
 
 head(df_test)
 
-
-
-setwd("C:/Users/tjunna/OneDrive - Valtori GTK/Desktop/R/LakeLocales")
-
-#Read xlsx file as dataframe
-
-df_singles <- read_xlsx(path = "C:/Users/tjunna/OneDrive - Valtori GTK/Desktop/R/LakeLocales/BluePrint_single_3110.xlsx")
 
