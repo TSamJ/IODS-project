@@ -1,0 +1,303 @@
+---
+title: "chapter3"
+author: "Tuomas Junna"
+date: '2023-11-16'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+# Assignment 3: Logistic regression
+
+This is the third assignment on the IODS course. It uses a dataset from http://www.archive.ics.uci.edu/dataset/320/student+performance wrangled into it's current form using the R scrip create_alc.R that can be found from the authors GitHub repository. The dataset is used to study the use of alcohol among students and includes background data of the study subjects as well as classification of students into two groups, high and low alcohol use. Alcohol use is considered high, when the students combined alcohol consumption over workweek and days off exceed an arbitrary number treshold  of 2, as the questionnaire ranks alcohol use in both categories with numerical values from 1 to 5 corresponding to from very low to very high.
+
+The purpose of this work is to study the relationships between high/low alcohol consumption and compare it to other variables in the dataset. 
+
+```{r}
+#Libraries
+library(tidyverse)
+library(dplyr)
+
+#Set working directory
+
+setwd("C:/Users/tjunna/OneDrive - Valtori GTK/Desktop/R/IODS/IODS-project")
+
+#Load alc
+
+alc <- read.csv("data/alc.csv", sep = ",", header=TRUE)
+
+
+alc <- alc
+dim(alc)
+names(alc)
+glimpse(alc)
+
+```
+The dataset consists of 370 observations of 35 variables, with the last two categories being a combined value for alcohol consumption and the high_use being a logical vector addressing whether the student belongs in high use category or not. The full explanation to categories can be found from http://www.archive.ics.uci.edu/dataset/320/student+performance, but
+in this exercise we will focus on the following categories: 
+
+health - health - current health status (numeric: from 1 - very bad to 5 - very good)
+famrel - quality of family relationships (numeric: from 1 - very bad to 5 - excellent)
+romance - with a romantic relationship (binary: yes or no)
+absences -bsences - number of school absences (numeric: from 0 to 93)
+
+We will compare these variables against the total mean consumption of alcohol (alc_use, that is the mean consumption over both work and off days) as well as to explore the defined frequent drinkers logical vector of high_use.
+
+The classical hypothesis is that people consuming high amounts of alcohol had a horrible upbringing (famrel) in nasty household that made them develop an unhealthy outlook on romantic life (romance) so turn to drinking that would lead them to be absent from class and thus failing their courses while their health slowly deteriorates. It is what Charlie Sheen would call winning. As would I, for that matter. This is the least interesting and mind numbing approach to study like this I could figure out so naturally I will do it in the spirit of old Aki Kaurismäki films.
+
+
+But let's get to know our group of people first: 
+
+```{r, echo=FALSE}
+ggplot(alc, aes(x = sex, fill = factor(high_use))) +
+  geom_bar(position = "dodge", stat = "count") +
+  labs(title = "Students who qualify for high alcohol use by sex (logical)",
+       x = "Sex",
+       y = "Count") +
+  scale_fill_manual(values = c("FALSE" = "blue", "TRUE" = "red"),
+                    name = "High Use")
+
+#calculate the students
+
+sex_counts <- table(alc$sex)
+
+print(sex_counts)
+
+sex_counts_high_use <- table(alc$sex[alc$high_use == TRUE])
+
+
+print(sex_counts_high_use)
+
+# By cross tabulation
+
+
+
+# Create a cross table
+cross_table <- table(alc$sex, alc$high_use)
+
+# Display the cross table
+print(cross_table)
+```
+We can see that out of female students, that frequent alcohol use is roughly twice as common among male students compared to females. Out of 195 female students, 41 qualify as gen-u-vine boozers whereas 70 out of male students make the cut. If we want a worse way of displaying the results, we can also use cross tabulation as on the last console printout.
+
+As worse is cool, we will now check the same for chosen binary variables both using  cross tabulation:
+
+```{r}
+# Create a cross table
+cross_table2 <- table(alc$romantic, alc$high_use)
+
+# Display the cross table
+print(cross_table2)
+
+
+```
+The heavier drinkers are not all alone. ~49% of the people who drink less frequently are in relationships, compared to the 42% of the people do like to down some serious beer. So my hypothesis is not looking great: while there is a difference, I would say it is not very strong correlation due to the small sample size and a demographic of young kids.
+
+
+```{r}
+# Create a cross table
+cross_table3 <- table(alc$famrel, alc$high_use)
+
+# Display the cross table
+print(cross_table3)
+
+
+```
+The poor upbringing and issues on the homefront hypothesis is not looking too good either. If anything, apart from outliers, the distribution of different family relation qualities is very evenly matched to between the percentages of the demographic being light or heavy drinkers.
+
+```{r}
+# initialize a plot of high_use and absences
+g1 <- ggplot(alc, aes(x = high_use, y = absences))
+
+# define the plot as a box plot and draw it
+
+g1 + geom_boxplot() + ylab("absences") 
+```
+The boxplot of alcohol usage groups and their recorded absences from class demonstrate that on average, the people who indulge do tend to miss a class more often than the people who keep the deviljuice off their lips. It is notable, that the master absentee belongs to the light drinking group. I think I have succesfully identified the biggest pothead of the class.
+
+```{r}
+# initialize a plot of high_use and absences
+g2 <- ggplot(alc, aes(x = high_use, y = health))
+
+# define the plot as a box plot and draw it
+
+g2 + geom_violin() + ylab("health")
+
+# Create a cross table
+cross_table4 <- table(alc$health, alc$high_use)
+
+# Display the cross table
+print(cross_table4)
+```
+Well now we are getting somewhere! While the alcohol consumption obviously has not had any time to affect the health of these teenagers, it is very notable that the self reported health status of the heavier drinkers is top heavy, so they are feeling good!
+
+So Mr. Kaurismäki hypothesis was not that great. We have thus proven that classic Finnish cinematography is pointless and that my chosen variables are not particularly good for studying the effects of alcohol consumption on teenagers. Most of them are basically healthy because they are teens, a huge number of them are in an early age relationship that will break down and truly introduce these kids to drinking later on and the people who drink might sleep in every now and then. Social/ health sciences in a nutshell...
+
+But as this is just an exercise, let's go on and use these variables as predictions in a logistic regression model:
+
+```{r}
+# Work with the exercise in this chunk, step-by-step. Fix the R code!
+# alc is available 
+
+# find the model with glm()
+m <- glm(high_use ~ health + absences + romantic + famrel, data = alc, family = "binomial")
+
+# print out a summary of the model
+
+summary(m)
+# print out the coefficients of the 
+
+
+# compute odds ratios (OR)
+OR <- coef(m) %>% exp
+
+# compute confidence intervals (CI)
+
+CI <- confint(m) %>% exp
+
+# print out the odds ratios with their confidence intervals
+cbind(OR, CI)
+
+# Combine OR and CI into a data frame
+results <- data.frame(OR = OR, CI)
+
+# Print out the odds ratios with their confidence intervals
+print(results)
+
+
+
+```
+First summary table is for the logistic regresseion data in the alc dataset. The response variable is high_use, aka, people who use alcohol more often and the predictor variables are health, absences, romantic, and famrel. The family parameter is set to "binomial" because we are dealing with binary outcomes.
+
+Deviance residuals are a measure of how well the model fits the data. They are displayed as a five-number summary (minimum, 1st quartile, median, 3rd quartile, maximum). This case:
+
+Minimum: -2.3327
+1st Quartile: -0.8276
+Median: -0.6956
+3rd Quartile: 1.1419
+Maximum: 1.9755
+
+
+The goodness of fit of deviance residuals depends on various factors, and there isn't a strict threshold for what can be considered "good" or "bad" deviance residuals. There are no apparent abnormal patterns in the residuals. The deviance residuals range from -2.3327 to 1.9755, indicating some variability.
+The five-number summary suggests that the residuals are not perfectly symmetrically distributed, and there might be some right-skewness. The model's AIC is 435.17, and the residual deviance is 425.17, indicating a reasonably good fit.Deviance residuals should ideally have constant spread across all levels of predictors, indicating homoscedasticity. The heavily "top heavy" distribution of health observations could possibly affect this slightly, but the spread does not appear overly skewed. 
+
+The **coefficients** represent the log-odds of the response variable associated with each predictor, given the other predictors in the model are held constant.
+The p-values indicate the significance of each predictor. For example, **'absences` is highly significant** (p-value < 0.001), while **'romantic' is not significant** at conventional levels.
+
+
+Below the summary, visible in the  output table ares **odds ratios (OR)** and **confidence intervals (CI) for** the coefficients of a logistic regression model. The values are to be explored:
+
+Odds Ratios (OR):
+Intercept: 0.5631533
+health: 1.1743814
+absences: 1.0921933
+romanticyes: 0.7106181
+famrel: 0.7401416
+Confidence Intervals (CI):
+Intercept: [0.1765400, 1.749601]
+health: [0.9920800, 1.398226]
+absences: [1.0466931, 1.144796]
+romanticyes: [0.4227213, 1.172751]
+famrel: [0.5750121, 0.950398]
+
+These can be interpreted as follows:
+
+**Intercept**: The odds of the event occurring when all predictor variables are zero.
+**health**: For a one-unit increase in 'health', the odds of the event occurring increase by approximately 17.44% (1.1743814 times).
+**absences**: For a one-unit increase in 'absences', the odds of the event occurring increase by approximately 9.22% (1.0921933 times).
+**romanticyes**: If 'romantic' is 'yes' compared to 'no', the odds of the event occurring decrease by approximately 29.94% (0.7106181 times).
+**famrel**: For a one-unit increase in 'famrel', the odds of the event occurring decrease by approximately 25.99% (0.7401416 times).
+
+
+**Interpretation of Specific Coefficients:**
+The confidence interval for **health** includes 1, suggesting that the effect may **not be statistically significant**.
+The confidence interval for **Absences** does not include 1, indicating a **statistically significant effect**.
+The confidence interval for **romantic** includes 1, suggesting that the **effect may not be statistically significant**.
+The confidence interval for **famrel** does not include 1, indicating a **statistically significant effect**.
+
+Findings are very interesting, as by first hand inspection of the family relations were completely separated from whether someone became a heavier drinker whereas the logistic model would suggest that better family relationships lead to decreased chance of heavy drinking. The health and romantic life categories were irrelevant as suspected and the clearly significant variable, amount of absences was statistically significant. 
+
+In a way, this is a very interesting position for further testing the model as we confirmed 3 out 4 expectations, but got something unexpected on the fourth but only based on the specific coefficients, not the model summary. For testing the predictive power of the model, we'll choose the absences as a sure thing and the family relations as a wild card.
+
+
+```{r}
+modeller <- glm(high_use ~ absences, famrel, data = alc, family = "binomial")
+alc <- mutate(alc, probability = predict(m, type = "response"))
+alc <- mutate(alc, prediction = probability > 0.5)
+
+# initialize a plot of 'high_use' versus 'probability' in 'alc'
+gip <- ggplot(alc, aes(x = probability, y = high_use)) +
+  geom_point()
+
+# define the geom as points and draw the plot
+gip
+
+# tabulate the target variable versus the predictions
+table(high_use = alc$high_use, prediction = alc$prediction)
+```
+Visualization of our predicted model, showing the combined effects family relationship quality and absences as predictors for high alcohol use. Notable at this point is the mathematical criss crossing. Alcohol use might be more of a predictor of absences than the other way around...
+
+In the R console output, a is a table thatis commonly known as a **confusion matrix**. It's used to evaluate the performance of a classification model, such as logistic regression, by comparing predicted and actual values. It displays In upper row, left to right, it displays **True Negative** (TN) = 252 and **False Positive** (FP) = 7
+And in bottom row, it displays **False Negative** (FN) = 78 and **True Positive** (TP) = 33  , respectively.
+
+The meaning of this is as follows:
+
+TN : 252 - Instances that are actually FALSE and predicted as FALSE.
+FP : 7 - Instances that are actually FALSE but predicted as TRUE.
+FN : 78 - Instances that are actually TRUE but predicted as FALSE.
+TP : 33 - Instances that are actually TRUE and predicted as TRUE.
+
+What we can see, that according to confusion matrix, our model is far more likely to produce false negatives than false positives, meaning that there are factors beyond the grasp of our models that drive the bottle up peoples lips. In this sense, the model is apparently not a particularly useful tool for reasons discussed above. 
+
+
+
+```{r}
+# define a loss function (mean prediction error)
+loss_func <- function(class, prob) {
+  n_wrong <- abs(class - prob) > 0.5
+  mean(n_wrong)
+}
+
+# call loss_func to compute the average number of wrong predictions in the (training) data
+loss_func(class = alc$high_use, prob = 0)
+
+# compute the average number of wrong predictions in the (training) data
+
+train_error <- loss_func(class = alc$high_use, prob = alc$probability)
+print(train_error)
+
+# K-fold cross-validation
+library(boot)
+cv <- cv.glm(data = alc, cost = loss_func, glmfit = m, K = nrow(alc))
+
+# average number of wrong predictions in the cross validation
+cv$delta[1]
+
+# Adjust the code: Perform 10-fold cross-validation
+cv_10fold <- cv.glm(data = alc, cost = loss_func, glmfit = m, K = 10)
+
+# Print out the mean prediction error for the testing data in 10-fold cross-validation
+cv_10fold$delta[1]
+
+```
+
+Last output features four values.
+
+**Train error** = 0.3. This value for training error means that, on the training data, the proportion of instances that were misclassified by the model is 0.3 or 30%. Training error is a measure of how well the model performs on the data it was trained on. If the training error is 0.3, it implies that, on average, 30% of the instances in your training data are misclassified by the logistic regression model.
+
+**The K-fold cross validation* is performed as a single fold (0.2405405) and 10-fold (0.2378378) validations as seen from the last two numbers of the output. 0.2405405, It means that, on average across the folds, the logistic regression model has a misclassification rate of approximately 24.05%. K-fold cross-validation is a technique used to assess the performance of a model on multiple subsets of the data, providing a more reliable estimate of how well the model generalizes to unseen data.
+
+**The 10-fold cross-validation error** is reported as 0.2378378, it means that, on average across the 10 folds, the logistic regression model has a misclassification rate of approximately 23.78%, outperforming the model in exercise 3. 
+
+
+If the 10-fold cross-validation error is reported as 0.2378378, it means that, on average across the 10 folds, the logistic regression model has a misclassification rate of approximately 23.78%.
+
+The very minor decrease in misclassification rate happens due to the increased folding: 
+The dataset is divided into 10 equally-sized folds.
+The model is trained 10 times, each time using 9 folds for training and 1 fold for validation.
+The reported error is the average of the misclassification rates across all 10 folds.
+
+A lower cross-validation error indicates better generalization performance. A cross-validation error of 0.2378378 suggests that, on average, the model performs reasonably well across the different subsets of the data used in the cross-validation process. This provides a more robust estimate of how well the model is likely to perform on new, unseen data compared to assessing performance on a single training-test split.
