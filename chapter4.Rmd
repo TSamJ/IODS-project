@@ -1,0 +1,502 @@
+---
+title: "Chapter 4"
+author: "Tuomas Junna"
+date: '2023-11-24'
+output: html_document
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+# Assignment 4.
+
+## Clustering and classification
+
+This is the assingment #4 on the IODS course, with focus on clustering and classifiation. In this assignemnt, the we will be using Boston (MA, USA) suburb housing value data. [The data and metadata can retrieved from this link](https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/Boston.html "Source with metadata"). The data is included in the "MASS" library of R, which is loaded with other relevant libraries. 
+
+```{r}
+#Libraries
+library(tidyverse)
+library(dplyr)
+library(MASS)
+library(tidyr)
+library(corrplot)
+
+#Set working directory
+
+setwd("C:/Users/tjunna/OneDrive - Valtori GTK/Desktop/R/IODS/IODS-project")
+
+# load the data
+data("Boston")
+
+# explore the dataset
+
+str(Boston)
+
+summary(Boston)
+
+
+# plot matrix of the variables
+
+pairs(Boston)
+
+```
+The dataset has no missing values and contains 506 observations in 14 different variables. The variables denote different factors affecting residential land value such as crime rate, property tax rate, amount of industrial zoning, lot and dwelling size, air quality, residential tax rate and so on and so forth.  The mean values of different variables range from 0.06917 to 408. As per usual, the output of the pairs() function displayed above is compeletely unreadable and useless, so the relations are explored further using a correlation plot of a calculated correlation matrix.
+
+```{r}
+
+# calculate the correlation matrix and round it
+cor_matrix <- cor(Boston) 
+
+# print the correlation matrix
+
+cor_matrix
+
+# visualize the correlation matrix
+
+corrplot(cor_matrix, method="circle")
+
+```
+
+
+Above we have a numerical and visual representation of the correlation matrix of the data. The values range from -1 to 1, where: 
+
+**1** indicates a perfect positive correlation
+**-1** indicates a perfect negative correlation
+**0** indicates no correlation.
+
+So for example the first variable, crim, denoting per capita crime rate, has a positive correlation with:
+
+indus (proportion of non-retail business acres per town),
+nox (nitric oxides concentration),
+age (proportion of owner-occupied units built prior to 1940),
+rad (index of accessibility to radial highways),
+tax (full-value property tax rate per $10,000),
+lstat (percentage of lower status of the population).
+
+and a negative correlation with:
+
+zn (proportion of residential land zoned for lots over 25,000 sq. ft.),
+dis (weighted distances to five Boston employment centres),
+ptratio (pupil-teacher ratio by town),
+black (1000(Bk - 0.63)^2 where Bk is the proportion of Black residents).
+
+. This allows the examination of each variable against other any other variable. Graphically, the correlation plot eases the exploratory reading - the darker the blue the stronger the positive correlation, and darker the red, the stronger negative correlation is. 
+
+For further analysis, the dataset needs to be **scaled**. We will be using the scale(), which standardizes the variables by removing the mean and scaling to unit variance using standard deviation. This is important for correlation analysis because it ensures that all variables are on a comparable scale. The calculation is described by the equation below:
+
+$$scaled(x) = \frac{x - mean(x)}{ sd(x)}$$
+
+```{r}
+
+# center and standardize variables
+boston_scaled <- scale(Boston)
+
+# summaries of the scaled variables
+
+summary(boston_scaled)
+
+
+# class of the boston_scaled object
+class(boston_scaled)
+
+# change the object to data frame
+
+boston_scaled <- as.data.frame(scale(Boston))
+
+```
+
+From the summary of the dataset we can now see, that each variable has been scaled so that the mean is value is 0. The lowest minimum value is -3,9033 and the highest maximum value is 9.924110. In other words, compared to the original dataset, values are much closer together and share an equal mean value, that for lack of a proper expression, makes for a neutral baseline across variables.
+
+Next, we will create a categorical variable of the crime rate per capita, broken into quantiles referred to as bins. Then we will remove the original "crim" variable from the dataset.
+
+```{r}
+
+# summary of the scaled crime rate
+
+summary(boston_scaled$crim)
+
+# create a quantile vector of crim and print it
+bins <- quantile(boston_scaled$crim)
+bins
+
+# create a categorical variable 'crime'
+crime <- cut(boston_scaled$crim, breaks = bins, include.lowest = TRUE)
+
+
+# look at the table of the new factor crime
+
+table(crime)
+# remove original crim from the dataset
+boston_scaled <- dplyr::select(boston_scaled, -crim)
+
+
+
+# add the new categorical value to scaled data
+boston_scaled <- data.frame(boston_scaled, crime)
+
+
+```
+
+What the summary of the quantile bins now shows us that our scaled data is broken into four near identical bins with the scaled value of the crime rate being way the bins are formed.
+
+The last output seems to represent the frequency distribution of the "crime" variable, categorized into different intervals. The intervals are:
+
+The last bracketet values reprsents the scaled values present in the bins and lastly, we can see that the highest and lowest quantiles consist 127 observations, and the "middle" quantiles have 126 observations each. 
+Next, we will divide the dataset to train and test sets, so that 80% of the data is included in the training data set. In other words, we'll include 80% of the rows in the dataset.
+
+
+
+
+
+```{r, echo=FALSE}
+#Reload the scaled dataset: 
+boston_scaled <- read.table("https://raw.githubusercontent.com/KimmoVehkalahti/Helsinki-Open-Data-Science/master/datasets/boston_scaled.txt",
+                            sep=",", header = T)
+
+# Rename the categories
+boston_scaled$crime <- factor(boston_scaled$crime, levels = c("low", "med_low", "med_high", "high"))
+
+# number of rows in the Boston dataset 
+n <- nrow(boston_scaled)
+
+# choose randomly 80% of the rows
+ind <- sample(n,  size = n * 0.8)
+
+# create train set
+train <- boston_scaled[ind,]
+
+# create test set 
+test <- boston_scaled[-ind,]
+
+# save the correct classes from test data
+correct_classes <- test$crime
+
+# remove the crime variable from test data
+test <- dplyr::select(test, -crime)
+
+#summaries
+
+str(train)
+str(test)
+
+```
+
+We now have the training dataset with 404 observation of 14 variables in the training set and 102 observations of 13 variables in the test set, as "crim variable is excluded. Now we will fit the linear discriminant analysis on the train set with the categorical crime rate as target and the other as predictors.
+
+```{r}
+
+
+# linear discriminant analysis
+lda.fit <- lda(crime ~., data = train)
+
+# print the lda.fit object
+lda.fit
+
+# the function for lda biplot arrows
+lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "red", tex = 0.75, choices = c(1,2)){
+  heads <- coef(x)
+  graphics::arrows(x0 = 0, y0 = 0, 
+         x1 = myscale * heads[,choices[1]], 
+         y1 = myscale * heads[,choices[2]], col=color, length = arrow_heads)
+  text(myscale * heads[,choices], labels = row.names(heads), 
+       cex = tex, col=color, pos=3)
+}
+
+# target classes as numeric
+classes <- as.numeric(train$crime)
+
+# plot the lda results (select both lines and execute them at the same time!)
+plot(lda.fit, dimen = 2)
+lda.arrows(lda.fit, myscale = 1)
+
+```
+
+By exploring the console output and generated graph, we can now look at the results of the linear discrimant analysis. The prior probabilities indicate the probability of each group in the training data. In this case, the low, medium low, medium high and high per capita crime rates. The group means represent the mean values of each variable for each group. For example, in the "low" group, the mean values for variables like zn, indus, chas, etc., are provided.
+**The coefficients of linear discriminants** show the contribution of each variable to the linear combinations used to discriminate between the groups. 
+
+The **proportion of trace** indicates the proportion of total variance in the data that is accounted for by each linear discriminant. In this case, the first linear discriminant (LD1) explains approximately 94.87% of the total variance, the second linear discriminant (LD2) explains about 3.93%, and the third linear discriminant (LD3) explains about 1.20%.
+
+
+We can then test the predicting in actuality with the splitted data
+
+```{r, echo=FALSE}
+# predict classes with test data
+lda.pred <- predict(lda.fit, newdata = test)
+
+# cross tabulate the results
+table(correct = correct_classes, predicted = lda.pred$class)
+
+```
+The cross tabulation known as confusion matrix here shows the predictive success against our test data. 
+
+For observations with the true crime class "low," the LDA model correctly predicted 11 instances as "low," misclassified 10 as "med_low," and 1 as "med_high." No instances were wrongly predicted as "high."
+
+For observations with the true crime class "med_low," the model correctly predicted 17 instances as "med_low," misclassified 2 as "low," and 4 as "med_high."
+
+For observations with the true crime class "med_high," the model correctly predicted 14 instances as "med_high," misclassified 1 as "low," 11 as "med_low," and 1 as "high."
+
+For observations with the true crime class "high," the model correctly predicted 28 instances as "high."
+
+In other words, our model is best able to predict the occurance of high crame rate, and but clearly things get more complex as ambiguity and perhaps non modeled factors become more prominent in lower crime settings. In any case, none of the extreme low or high crime rates were predicted, and the low prediction could, to a reasonable extent, predict that crime would be towards the lower end. 
+
+In other words, the model seems to perform well in predicting "high" crime instances (28 out of 28 correct).
+There are some misclassifications, as indicated by non-zero values off the diagonal.
+
+This model could serve as a "will I get shot" funtion on zillow real estate page. Travelling in the suburbs of larger US cities, it's when 20% percent of stores carry mostly liquor or firearms you know you are pretty well matched with the model category.
+
+
+Next, we will reload the Boston dataset, standardize it and calculate the distances between observations in order to run t k-mean algorithm on the dataset. 
+
+```{r, echo=FALSE}
+
+library(ggplot2)
+
+# Load the Boston dataset
+data("Boston")
+df_boston <- Boston
+
+scaled_boston <- scale(df_boston)
+
+#Set seed for reproducibility
+
+set.seed(123)
+
+# determine the number of clusters
+k_max <- 10
+
+# calculate the total within sum of squares
+twcss <- sapply(1:k_max, function(k){kmeans(scaled_boston, k)$tot.withinss})
+
+# visualize the results
+qplot(x = 1:k_max, y = twcss, geom = 'line')
+
+# k-means clustering
+km <- kmeans(scaled_boston, centers = 2)
+
+# plot the Boston dataset with clusters
+pairs(scaled_boston, col = km$cluster)
+
+
+```
+So here we have produced The Total Within-Cluster Sum of Squares (TWCSS) diagram: It is a measure of the compactness of clusters in a k-means clustering algorithm. It represents the sum of the squared distances between each data point and the centroid of its assigned cluster. 
+
+A high TWCSS indicates that the data points within each cluster are widely spread out from their respective centroids.
+It suggests that the clusters are not well-defined or that the chosen number of clusters (k) may be too small to capture the underlying structure of the data.
+
+A low TWCSS indicates that the data points within each cluster are closely packed around their centroids.
+It suggests that the clusters are well-defined, and the chosen number of clusters (k) is appropriate for capturing the structure of the data.
+
+A smaller number of clusters may result in a higher TWCSS, but if the clusters are meaningful, it might be an acceptable trade-off. From the TWCSS chart alone, it could be expected that a reasonable number of clusters would be somewhere in the range of 8 - 9.  We can explore further with an elbow plot.
+
+```{r, echo=FALSE}
+# Load the Boston dataset
+data("Boston")
+df_boston <- Boston
+
+# Extract relevant columns for clustering
+df_clustering <- df_boston
+
+# Standardize the data
+scaled_data <- scale(df_clustering)
+
+# Calculate distances between observations
+distances <- dist(scaled_data)
+
+# Set a seed for reproducibility
+set.seed(123)
+
+# Specify the range of k values to try
+k_values <- 2:10
+
+# Run k-means for each k value and store the results
+kmeans_results <- lapply(k_values, function(k) kmeans(scaled_data, centers = k, nstart = 25))
+
+# Extract the total within-cluster sum of squares (total inertia) for each k
+total_withinss <- sapply(kmeans_results, function(result) result$tot.withinss)
+
+# Plot the elbow method to find the optimal number of clusters
+plot(k_values, total_withinss, type = "b", pch = 19, frame = FALSE, main = "Elbow Method",
+     xlab = "Number of Clusters (k)", ylab = "Total Within-Cluster Sum of Squares")
+
+# Add a vertical line at the "elbow" (optimal k)
+abline(v = which.min(total_withinss), col = "red", lty = 2)
+
+```
+
+
+We are using the "elbow" method to identify the point where the total within-cluster sum of squares starts decreasing at a slower rate. This is where the "elbow" is located. Before the elbow, adding more clusters significantly reduces the sum of squares, and after the elbow, the reduction is less pronounced. However, the elbow is not really visually distinct, so the the it is marked with red vertical line, with our chose number thus being 9, which we will use going forward. 
+
+```{r, echo=FALSE}
+# Choose the optimal k (elbow point)
+optimal_k <- which.min(total_withinss)
+
+# Run k-means with the optimal k
+optimal_kmeans <- kmeans(scaled_data, centers = optimal_k, nstart = 25)
+
+# Add cluster assignments to the original dataset
+df_boston$cluster <- as.factor(optimal_kmeans$cluster)
+
+# Use pairs() function for scatterplot matrix with colors representing clusters
+pairs(df_boston[, -14], col = df_boston$cluster, pch = 19)
+
+```
+Now using the pairs function to produce this fine piece of modern art, it's clear that this is absolutely useless, as is often the case with different matrix plots coming out in their native form. It can be only expected to usable as large pdf export, which is done below. However, for interpretation purposes, 
+
+The diagonal elements of the scatterplot matrix show histograms of each variable and are used understand the distribution of individual variables.
+The off-diagonal elements show scatterplots between pairs of variables, with each point in a scatterplot representing an observation in the dataset
+
+Observations belonging to different clusters are differentiated by colors.
+
+If clusters are well-separated, it suggests that the clustering algorithm has successfully identified distinct groups. In our case, particularly zn seems to cluster very nicely, which is fitting, as people in really big houses tend to cluster in low crime neighborhoods.
+
+
+
+```{r, echo=FALSE}
+
+# Choose the optimal k (elbow point)
+optimal_k <- which.min(total_withinss)
+
+# Run k-means with the optimal k
+optimal_kmeans <- kmeans(scaled_data, centers = optimal_k, nstart = 25)
+
+# Add cluster assignments to the original dataset
+df_boston$cluster <- as.factor(optimal_kmeans$cluster)
+
+# Create a big PDF file
+pdf("scatterplot_matrix_optimal_k.pdf", width = 40, height = 40)
+
+# Use pairs() function for scatterplot matrix with colors representing clusters
+pairs(df_boston[, -14], col = df_boston$cluster, pch = 19)
+
+# Close the PDF device
+dev.off()
+
+```
+The produced pdf will be uploaded to my GitHub. It's still a mess.
+
+##Bonus
+
+I could not get the arrows work, so I had to result in ... more libraries. sigh.
+
+```{r, echo=FALSE}
+
+library(cluster)  # for kmeans function
+library(ggplot2)  # for data visualization
+
+# Load the Boston dataset
+data("Boston")
+df_boston <- Boston
+
+# Standardize the data
+scaled_data <- scale(df_boston)
+
+# Choose the number of clusters 
+k <- 4
+
+# Run k-means clustering
+kmeans_result <- kmeans(scaled_data, centers = k, nstart = 25)
+
+# Add cluster assignments to the original dataset
+df_boston$cluster <- as.factor(kmeans_result$cluster)
+
+# Run Linear Discriminant Analysis (LDA)
+lda_result <- lda(cluster ~ ., data = df_boston)
+
+# Extract LDA results
+lda_data <- predict(lda_result)
+
+# Combine original data with LDA results
+df_lda <- cbind(df_boston, as.data.frame(lda_data$x))
+
+# Create a biplot using ggplot2
+ggplot(df_lda, aes(x = LD1, y = LD2, color = cluster)) +
+  geom_point() +
+  geom_text(aes(label = row.names(df_boston)), hjust = 0, vjust = 0, size = 2) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray") +
+  labs(title = "LDA Biplot with Cluster Colors") +
+  theme_minimal()
+
+```
+I for one cannot make the arrows appear. How about: 
+
+
+```{r, echo=FALSE}
+
+library(scatterplot3d)
+
+# Load the Boston dataset
+data("Boston")
+df_boston <- Boston
+
+# Standardize the data
+scaled_data <- scale(df_boston)
+
+# Choose the number of clusters (e.g., k = 4)
+k <- 4
+
+# Run k-means clustering
+kmeans_result <- kmeans(scaled_data, centers = k, nstart = 25)
+
+# Add cluster assignments to the original dataset
+df_boston$cluster <- as.factor(kmeans_result$cluster)
+
+# Run Linear Discriminant Analysis (LDA)
+lda_result <- lda(cluster ~ ., data = df_boston)
+
+# Extract LDA results
+lda_data <- predict(lda_result)
+
+# Create a 3D scatter plot with arrows
+scatterplot3d(lda_data$x[, 1], lda_data$x[, 2], lda_data$x[, 3], color = df_boston$cluster, pch = 19)
+```
+
+
+
+
+
+
+No. All kinds of arrows are simply off limits for reasons I am beyond caring about. Anyways, in this plot we can see as badly as from the 2D plot, that points on the left side LD1 cluster are tightly clumped and are separated from each other mainly on the LD2 axis. Then we have a single cluster on the other side of LD1 axis that spans widely across LD2. The position of the point along the LD1 and LD2 axes indicates the values of that observation in the two linear discriminant dimensions.
+Points that are closer together tend to be more similar in terms of the linear discriminant dimensions.
+(Each point is colored based on its assigned cluster from the k-means clustering.)
+
+Oh wait
+
+```{r, echo=FALSE}
+
+# Load the Boston dataset
+data("Boston")
+df_boston <- Boston
+
+# Standardize the data
+scaled_data <- scale(df_boston)
+
+# Choose the number of clusters 
+k <- 4
+
+# Run k-means clustering
+kmeans_result <- kmeans(scaled_data, centers = k, nstart = 25)
+
+# Add cluster assignments to the original dataset
+df_boston$cluster <- as.factor(kmeans_result$cluster)
+
+# Run Linear Discriminant Analysis (LDA)
+lda_result <- lda(cluster ~ ., data = df_boston)
+
+# Extract LDA results
+lda_data <- predict(lda_result)
+
+# Create a biplot using the plot() function
+plot(lda_result)
+```
+
+
+No. I give up. I would like arrows in graphs, not in my knee.
+
+
+
