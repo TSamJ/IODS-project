@@ -7,11 +7,6 @@ output: html_document
 
 
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-
-```
-
 # Assignment 4.
 
 ## Clustering and classification
@@ -90,7 +85,6 @@ black (1000(Bk - 0.63)^2 where Bk is the proportion of Black residents).
 For further analysis, the dataset needs to be **scaled**. We will be using the scale(), which standardizes the variables by removing the mean and scaling to unit variance using standard deviation. This is important for correlation analysis because it ensures that all variables are on a comparable scale. The calculation is described by the equation below:
 
 $$scaled(x) = \frac{x - mean(x)}{ sd(x)}$$
-
 ```{r}
 
 # center and standardize variables
@@ -108,7 +102,9 @@ class(boston_scaled)
 
 boston_scaled <- as.data.frame(scale(Boston))
 
+
 ```
+
 
 From the summary of the dataset we can now see, that each variable has been scaled so that the mean is value is 0. The lowest minimum value is -3,9033 and the highest maximum value is 9.924110. In other words, compared to the original dataset, values are much closer together and share an equal mean value, that for lack of a proper expression, makes for a neutral baseline across variables.
 
@@ -153,7 +149,7 @@ Next, we will divide the dataset to train and test sets, so that 80% of the data
 
 
 
-```{r, echo=FALSE}
+```{r}
 #Reload the scaled dataset: 
 boston_scaled <- read.table("https://raw.githubusercontent.com/KimmoVehkalahti/Helsinki-Open-Data-Science/master/datasets/boston_scaled.txt",
                             sep=",", header = T)
@@ -224,7 +220,7 @@ The **proportion of trace** indicates the proportion of total variance in the da
 
 We can then test the predicting in actuality with the splitted data
 
-```{r, echo=FALSE}
+```{r}
 # predict classes with test data
 lda.pred <- predict(lda.fit, newdata = test)
 
@@ -252,7 +248,7 @@ This model could serve as a "will I get shot" funtion on zillow real estate page
 
 Next, we will reload the Boston dataset, standardize it and calculate the distances between observations in order to run t k-mean algorithm on the dataset. 
 
-```{r, echo=FALSE}
+```{r}
 
 library(ggplot2)
 
@@ -293,7 +289,7 @@ It suggests that the clusters are well-defined, and the chosen number of cluster
 
 A smaller number of clusters may result in a higher TWCSS, but if the clusters are meaningful, it might be an acceptable trade-off. From the TWCSS chart alone, it could be expected that a reasonable number of clusters would be somewhere in the range of 8 - 9.  We can explore further with an elbow plot.
 
-```{r, echo=FALSE}
+```{r}
 # Load the Boston dataset
 data("Boston")
 df_boston <- Boston
@@ -331,7 +327,7 @@ abline(v = which.min(total_withinss), col = "red", lty = 2)
 
 We are using the "elbow" method to identify the point where the total within-cluster sum of squares starts decreasing at a slower rate. This is where the "elbow" is located. Before the elbow, adding more clusters significantly reduces the sum of squares, and after the elbow, the reduction is less pronounced. However, the elbow is not really visually distinct, so the the it is marked with red vertical line, with our chose number thus being 9, which we will use going forward. 
 
-```{r, echo=FALSE}
+```{r}
 # Choose the optimal k (elbow point)
 optimal_k <- which.min(total_withinss)
 
@@ -356,7 +352,7 @@ If clusters are well-separated, it suggests that the clustering algorithm has su
 
 
 
-```{r, echo=FALSE}
+```{r}
 
 # Choose the optimal k (elbow point)
 optimal_k <- which.min(total_withinss)
@@ -383,7 +379,7 @@ The produced pdf will be uploaded to my GitHub. It's still a mess.
 
 I could not get the arrows work, so I had to result in ... more libraries. sigh.
 
-```{r, echo=FALSE}
+```{r}
 
 library(cluster)  # for kmeans function
 library(ggplot2)  # for data visualization
@@ -426,7 +422,7 @@ ggplot(df_lda, aes(x = LD1, y = LD2, color = cluster)) +
 I for one cannot make the arrows appear. How about: 
 
 
-```{r, echo=FALSE}
+```{r}
 
 library(scatterplot3d)
 
@@ -467,7 +463,7 @@ Points that are closer together tend to be more similar in terms of the linear d
 
 Oh wait
 
-```{r, echo=FALSE}
+```{r}
 
 # Load the Boston dataset
 data("Boston")
