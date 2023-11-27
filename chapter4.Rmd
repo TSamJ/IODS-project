@@ -238,12 +238,11 @@ For observations with the true crime class "med_high," the model correctly predi
 
 For observations with the true crime class "high," the model correctly predicted 28 instances as "high."
 
-In other words, our model is best able to predict the occurance of high crame rate, and but clearly things get more complex as ambiguity and perhaps non modeled factors become more prominent in lower crime settings. In any case, none of the extreme low or high crime rates were predicted, and the low prediction could, to a reasonable extent, predict that crime would be towards the lower end. 
+In other words, our model is best able to predict the occurance of high crame rate, but clearly things get more complex as ambiguity and perhaps non modeled factors become more prominent in lower crime settings. In any case, none of the extreme low or high crime rates were predicted to be the exact opposite.
 
-In other words, the model seems to perform well in predicting "high" crime instances (28 out of 28 correct).
-There are some misclassifications, as indicated by non-zero values off the diagonal.
+In other words, the model seems to perform well in predicting "high" crime instances (28 out of 28 correct). Things get slightly more muddy in between. There are also some misclassifications, as indicated by non-zero values off the diagonal.
 
-This model could serve as a "will I get shot" funtion on zillow real estate page. Travelling in the suburbs of larger US cities, it's when 20% percent of stores carry mostly liquor or firearms you know you are pretty well matched with the model category.
+This model could serve as a "will I get shot" funtion on zillow Boston real estate page. Travelling in the suburbs of larger US cities, it's when 20% percent of stores carry mostly liquor or firearms you know you are pretty well matched with the model category.
 
 
 Next, we will reload the Boston dataset, standardize it and calculate the distances between observations in order to run t k-mean algorithm on the dataset. 
@@ -457,7 +456,7 @@ scatterplot3d(lda_data$x[, 1], lda_data$x[, 2], lda_data$x[, 3], color = df_bost
 
 
 
-No. All kinds of arrows are simply off limits for reasons I am beyond caring about. Anyways, in this plot we can see as badly as from the 2D plot, that points on the left side LD1 cluster are tightly clumped and are separated from each other mainly on the LD2 axis. Then we have a single cluster on the other side of LD1 axis that spans widely across LD2. The position of the point along the LD1 and LD2 axes indicates the values of that observation in the two linear discriminant dimensions.
+No. All kinds of arrows are simply off limits for me today Anyways, in this plot we can see as badly as from the 2D plot, that points on the left side LD1 cluster are tightly clumped and are separated from each other mainly on the LD2 axis. Then we have a single cluster on the other side of LD1 axis that spans widely across LD2. The position of the point along the LD1 and LD2 axes indicates the values of that observation in the two linear discriminant dimensions.
 Points that are closer together tend to be more similar in terms of the linear discriminant dimensions.
 (Each point is colored based on its assigned cluster from the k-means clustering.)
 
@@ -492,7 +491,7 @@ plot(lda_result)
 ```
 
 
-No. I give up. I would like arrows in graphs, not in my knee.
+No. I give up. I would like arrows in graphs, not in my knee. Perhaps I should have stuck to less linear discriminant and effectively copied from the exercise, but that did not seem very educational.
 
 
 
