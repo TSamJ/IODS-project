@@ -1,0 +1,259 @@
+---
+title: "Chapter5"
+author: "Tuomas Junna"
+date: '2023-12-04'
+output: html_document
+---
+
+
+# Assignment 5.
+
+## Dimensionality reduction techniques and data wrangling results, combined
+
+This is the assingment #5 on the IODS course, with focus on dimensionality reduction techniques such as principal component analysis (PCA). In this assigment, the we will using United Nations Human Development (UNDP) data, more of which you can read from. [Link to data provider](https://hdr.undp.org/ "link to source with metadata"). This data has been wrangled to a new combination dataset using an R script create_human.R, that can be found from the return folder link. The data is described in the paragraphs below.
+
+
+```{r}
+#Libraries
+library(tidyverse)
+library(dplyr)
+library(MASS)
+library(tidyr)
+library(corrplot)
+
+#Set working directory
+
+setwd("C:/Users/tjunna/OneDrive - Valtori GTK/Desktop/R/IODS/IODS-project")
+
+
+# Read the CSV file into a dataframe
+
+df_human <- read.csv("data/human.csv")
+
+# Check the structure of the dataframe
+
+str(df_human)
+
+# explore the dataset
+
+
+```
+The dataset used in this assignment, is a a selection of variables from UNDP Human Development Index (HDI) data to describe the general development level and gender equality in different countries. The original metadata and calculation methods of indices can be explored via the following links:
+
+[Link to data provider](https://hdr.undp.org/data-center/human-development-index#/indicies/HDI/ "HDI data")
+
+
+[Link to data provider](https://hdr.undp.org/system/files/documents/technical-notes-calculating-human-development-indices.pdf "Calculating development indices")
+
+Our dataset consists of 155 observations of 9 different variables. The variables have been renamed for quicker workflow and denote the following: 
+
+**"Country"** = Name of the country in question
+
+**"ratio_edu"** =Proportion of females with at least secondary education divided by proportion of males with at least secondary education.
+
+**"ratio_labour"** = Proportion of females in the labour force divided by the proportion of males in the labour force.
+
+**"eduexpt"** = Expected years of education received per person.
+
+**"lifexpt"** = Life expectancy at birth.
+
+**"GNI"** = Gross National Income per capita.
+
+**"matmort"** = Maternal mortality ratio.
+
+**"adobirth"** = Adolescent birth rate
+
+**"parliF"** = Percentage of female representatives in the parliament. 
+
+With this dataset, we will perform standard dimensionality reduction techniques and attempt to interpret the results, initial goal of setting the dataset up by excluding the character variable country as rowheaders, as these techniques are for numerical data. All rows with missing values have been removed from the dataset beforehand. The data is not yet standaridized
+
+
+```{r}
+
+# move the country names to rownames
+library(tibble)
+human_ <- column_to_rownames(df_human, "Country")
+
+# Access GGally
+library(GGally)
+
+summary(human_)
+# visualize the 'human_' variables
+
+# Histogram for Education
+hist(human_$ratio_edu, main = "Education Distribution", xlab = "Education F/M ratio")
+
+# Histogram for labour
+hist(human_$ratio_labour, main = "Labour Distribution", xlab = "Labour F/M ratio")
+
+ggpairs(human_, progress = FALSE)
+
+# Access corrplot
+library(corrplot)
+
+# compute the correlation matrix and visualize it with corrplot
+cor(human_)  %>% corrplot(type = "upper")
+
+```
+
+From the summary of the data, we can see the distribution in data is fairly wide. We have countries, where females make over 50% of parliamentary representation, are more likely than males recipients of higher education and participate equally (to the point of statistical irrelevancy) in workforce. At the same time, we have countries where life expency at birth varies between 49 and 83,5 years, GNI varies between 581 and 123124 USD an adolescent birth raty vary from significant to practically nonexisten as well as countries with absolutely zero female parliamentary representation.
+
+The histograms displaying the female to male ratios show, that on a global scale, men and women are fairly closely matched but, females being slightly less likely to recieve higher education on global scale, with the distribution tail being heavier on the lack of female education side. The effect is similar but a lot more pronounced in labour force participation, where the amount of female underrepresentation is considerably more pronounced. On a global scale, this could very well be to traditional roles and effects of child birth showing up on the data.
+
+From the correlation plots, we can see that expected years of education and female representation in the pool of educated people correlates with gross national income and life expectancy and negatively correlates with adolescent birth rates and maternal mortality. And vice versa. 
+
+The ratio of workforce participation overall shows the weakest correlations, bolstering the argument that in some countries the general population could be overall be wealthy, healthy and educated but more females still either abstain from or are excluded from the workforce.  Another weaker correlation is the number of female parliamentary representatives, although weak correlation shows that female representation appears more common in countries that are "well off."
+
+Even though the summary of the data showed great variability in the values of our data, we will still perform a PCA analysis on the data, with reduced expectations. 
+```{r}
+
+
+# perform principal component analysis (with the SVD method)
+pca_human_ <- prcomp(human_)
+
+#Summarize
+
+summary(pca_human_)
+
+# draw a biplot of the principal component representation and the original variables
+
+
+biplot(pca_human_, choices = 1:2, cex = c(0.5, 1), col = c("grey40", "deeppink2"), main = "Not standardized", sub = "Gross National Income dictates everything")
+
+
+```
+So we have now created a model where Pricipal Component (PC) 1 on the X axis explains pretty much all variation in the data. As we saw from the summary of the non-standarized data, the numerical range of variable GNI is an order of magnitude higher to second highest, the sheer difference of gross national income numbers across all countries absolutely dominates all other variation in the data. PC2 on Y axis is reduced to the point of statistical irrelevancy, but we can make out outliers such as relatively rich countries with extremely conservative gender roles (Qatar, Kuwait ) as well as extremely war torn, poor countries such as Congo, Chad and Sierra Leone, but all other aspects of the plots are generally useless simply due to the large differences in the actual numerical values in variables. Furthermore, printing it out creates all kinds of intederminate arrow angle issues. Doing a PCA analysis on non scaled data seems like a waste of time to me, but I suppose this exercise exists to highlight the point.
+
+
+```{r}
+
+# standardize the variables
+human_std <- scale(human_)
+
+# print out summaries of the standardized variables
+
+summary(human_std)
+
+# perform principal component analysis (with the SVD method)
+pca_human <- prcomp(human_std)
+
+#Summarize
+
+summary(pca_human)
+# draw a biplot of the principal component representation and the original variables
+
+
+biplot(pca_human, choices = 1:2, cex = c(0.3, 1), col = c("grey40", "red"), main = "Standardized", sub = "Standardized data PCA biplot. On the PC1 X axis, we see the relation of education opportunity equality, wealth (GNI) and positive and negative health outcomes. And on the Y axis, the  rate of female workforce participation and parliamentary representation, thus earning PC2 the moniker of ´Gender Role´ axis")
+
+# create and print out a summary of pca_human
+s <- summary(pca_human)
+
+
+# rounded percentanges of variance captured by each PC
+pca_pr <- round(1*s$importance[2, ], digits = 1)
+
+# print out the percentages of variance
+print(pca_pr)
+
+# create object pc_lab to be used as axis labels
+paste0(names(pca_pr), " (", pca_pr, "%)")
+
+```
+
+By repeating the exercise, with scaled data we basically the same thing almost everyone has been saying the past fourty years: Equal and adequate education of all members of society tends to correlate with higher life-expectancy and gross national income, reduced adolescent pregnancies and reduced maternal mortality as is shown on the variation of the PC1  axis.  Variation on this axis explains ~54% of the variation observed in the dataset. Which is hardly surprising as involving educated humans in the productive workforce tends to increase funds that then can again be used towards health and education creating a snowballing of positive effects. Which can also incidentally create a sustainability problem as seen by the age demographics of many well off countries at the moment.
+
+In this sense, the PC2 is kind of the gender role component, showing that labour force participation and parliamentary representation are not necessarily that heavily correlated with the wealth component of the X axis. We see several relatively wealthy, often resrouce rich countries that decidedly exclude females from representation and workforce that still achieve pretty well on reducing, say adolescent pregnancies and maternal deaths. This is reflected on the explanative power of PC2 being some ~16%. 
+
+So in PC2 we can, and I'm just spitballing, see several things: We can traditional, very patriarchal societies such as several middle eastern nations that typically have little to no female representation on the lower part as well as most of the wealthier "first world" countries on the upper left. Notable is that there are also high rates of female labour participation and representation in poorer countries with lower female education participation. Certainly this might be a question of necessity of as well -Either due to lots of men being absent (Rwanda etc) and or everyone simply having to participate to feed the family. And undoubtedly, some of these can also be seen as early stage of modern western society snowballing. Although as the PC1 shows, the first step is not the employment of women but the education of women. Of course the degree of necessity/ possibility dilemma can naturally be, at least to some degree, applied to wealthy countries with high living expenses as well: I certainly would prefer to end up as stay at home trophy dad and spend my days playing with kids instead of burning myself out in academia. And certainly high wealth, with good education and health outcomes allows people to make the choice to participate in labour for some. But for many, those damn bills have to be paid so someone who has time and energy to procreate can also have their kids get educated and end up as family line ending, burned out academics. So work, everyone, work!
+
+Now, let's explore some tea drinking dynamics.
+
+
+```{r}
+library(FactoMineR)
+library(ggplot2)
+
+tea <- read.csv("https://raw.githubusercontent.com/KimmoVehkalahti/Helsinki-Open-Data-Science/master/datasets/tea.csv", stringsAsFactors = TRUE)
+
+#view(tea) is commented out as it is highly annoying. 
+
+# Select the 'keep_columns' to create a new dataset
+
+keep_columns <- c("Tea", "How", "how", "sugar", "where", "friends")
+
+# Select the 'keep_columns' to create a new dataset
+tea_time <- tea %>%
+  dplyr::select(one_of(keep_columns)) 
+
+
+
+# look at the summaries and structure of the data
+summary(tea_time)
+str(tea_time)
+
+
+# Visualize the dataset using ggplot
+pivot_longer(tea_time, cols = everything()) %>% 
+  ggplot(aes(x = value, fill = name)) +
+  geom_bar(position = "dodge", stat = "count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Character Variables", x = "Value", y = "Count") +
+  facet_wrap("name", scales = "free")
+```
+
+The dataset contains 300 observations of 36 variables.  Out of these mainly character variables, we choose variables tea, How, how, sugar, where and friends. We make this choice as question "WHY OH WHY" is not available. The Tea category addresses what kind of an abomination of a drink the particular tea is, How denominates whether tea is drunk straight up or made even worse by including some other substance into the putrid concoction, how means whether the plant litter came in a bag or loose, sugar addresses whether the tea is again made even worse by making it sweeter, where means where the tea was obtained from and friends, presumably, means whether the drinkers have any. 
+
+We can see that there is some hope for tea drinkers: most dont add any other liquids (if they did, lemon would probably be the only acceptable choice. Unless the "other" refers to it being about 95% moonshine and 5% tea). Most get their tea out of chain stores in tea bags and majority of them drink it with other tea drinkers they call friends. Sugar is close to 50/50. Most drink earl grey, which is supposedly a distinct flavour of bad on a wide spectrum of awful.
+
+Next we use multiple component analysis to further peek into the dark and twisted dynamics of tea consumption. We will limit ourselves to the use of these six variables. 
+
+```{r}
+# Work with the exercise in this chunk, step-by-step. Fix the R code!
+# tea_time is available
+
+# multiple correspondence analysis
+library(FactoMineR)
+library(factoextra)
+
+mca1 <- MCA(tea_time, graph = FALSE)
+
+# summary of the model
+
+summary(mca1)
+
+# visualize MCA
+plot(mca1, invisible=c("ind"), graph.type = "classic")
+
+library(factoextra)
+fviz_screeplot(mca1, addlabels = TRUE, ylim = c(0, 45))
+
+# Create a biplot for MCA results
+plot.MCA(mca1, axes = c(1, 2), col.var = "red", cex = 0.7, main = "MCA Biplot")
+
+
+```
+So here the summary of the analysis is perhaps the most interesting.  Eigenvalues represent the amount of variance explained by each dimension (axis). Highest % degree of variance ontained is 15, with first two dimensions explaining a cumulative 30.309 % of variation. Looking at the scree plot, it is to be expected that our MCA biplot is fairly useless - the amount of explanative power across a multitude of degrees is fairly similar.
+
+
+
+The "Individuals" section provides information about the positions of the first 10 individuals in the MCA space along the dimensions. The "Categories" section provides information about the positions of the first 10 categories (levels of categorical variables) in the MCA space along the dimensions.
+
+The v.test values in the output represent the chi-squared test statistics for each category in relation to the dimension. This statistic helps assess the association between the category and the dimension. 
+
+Black Tea (black): A v.test value of 11.185 is a relatively high positive value. This suggests that the category "black" has a strong positive association with the dimension.
+
+Earl Grey Tea (Earl Grey): A v.test value of -10.530 is a relatively high negative value. This suggests that the category "Earl Grey" has a strong negative association with the dimension.
+
+Green Tea (green): A v.test value of 0.711 is a positive value, indicating a positive association, but it is smaller in magnitude compared to the other categories.
+
+And so on and so forth. 
+
+Looking at the plot, it would appear that neither of our first two dimensions very accurately catch large variations in the dataset, at least on their own. On dimension 1, the main difference appears to come from sweetness: people who use sugar and milk are separated from people who do not or use lemon. 
+
+On second dimension on the Y axis, it's clearly notable how green, and to lesser extent, black tea drinkers and people who buy their unpackaged tea from specialized tea shops (I presume we can call this group "the insufferables) are distinct from people who buy their tea of combination of tea shops and chain stores. However, as pure chain stores sit in the middle, the second dimension is not marked solely by place of purchase and perhaps more exotic varieties of disgusting sold in specialist shops. Most other data points tend to stack in the middle with relatively little co-variation even in variables one would expect.
+
+I suspect, as the middle cluster is mostly chain store buyrs who differ by whether they add sugar or not, we see an impact of large cluster of "mundane" mud-liquid drinkers who buy their bagged tea from chain stores being overweighting by numerical abundance and that then on dimensions 2 we have the group of people who buy from both chains and specialist and participate in both the every day tea drinking as well as tea snobbery, creating significan overlap and obfuscation on the real significance of dimension 1. In other words, it's not a particularly great choice of variables. 
+
+There we have it. Tea. It tastes like mud and even the statistics are mud.
+
+

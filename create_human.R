@@ -1,3 +1,9 @@
+# Author: Tuomas Junna
+#Date: 04.12.2023
+# Data wrangling R script for IODS course assignment 5. 
+#Origina data source : # Original data from: http://hdr.undp.org/en/content/human-development-index-hdi
+
+
 library(readr)
 library(tidyverse)
 library(dplyr)
@@ -38,8 +44,8 @@ colnames(gii)
 gii <- rename(gii, GII_rank = "GII Rank")
 gii <- rename(gii, GII = "Gender Inequality Index (GII)")
 gii <- rename(gii, matmort = "Maternal Mortality Ratio")
-gii <- rename(gii, birthrate = "Adolescent Birth Rate")
-gii <- rename(gii, parlmrep = "Percent Representation in Parliament")
+gii <- rename(gii, adobirth = "Adolescent Birth Rate")
+gii <- rename(gii, parliF = "Percent Representation in Parliament")
 gii <- rename(gii, eduF = "Population with Secondary Education (Female)")
 gii <- rename(gii, eduM = "Population with Secondary Education (Male)")
 gii <- rename(gii, labourF = "Labour Force Participation Rate (Female)")
@@ -51,7 +57,7 @@ gii <- rename(gii, labourM = "Labour Force Participation Rate (Male)")
 hd <- rename(hd, HDI_rank = "HDI Rank")
 hd <- rename(hd, HDI = "HID")
 hd <- rename(hd, lifexpt = "Life Expectancy at Birth")
-hd <- rename(hd, eduyears = "Expected Years of Education")
+hd <- rename(hd, eduexpt = "Expected Years of Education")
 hd <- rename(hd, meaneduyears = "Mean Years of Education")
 hd <- rename(hd, GNI = "Gross National Income (GNI) per Capita")
 hd <- rename(hd, GNI_HDI = "GNI per Capita Rank Minus HDI Rank")
@@ -60,10 +66,22 @@ hd <- rename(hd, GNI_HDI = "GNI per Capita Rank Minus HDI Rank")
 # Mutate the "Gender Inequality" data
 gii <- mutate(gii,
               ratio_edu = eduF / eduM,
-              ratio_labor_force = labourF / labourM)
+              ratio_labour = labourF / labourM)
 
 # Join the datasets using the Country variable (inner join)
 human <- inner_join(hd, gii, by = "Country")
+
+human <- human %>% 
+  select(Country, ratio_edu, ratio_labour, eduexpt, lifexpt, GNI, matmort, adobirth, parliF)
+
+
+#remove rows with missing values
+
+human <- human[complete.cases(human), ]
+
+#Remove rows that are not specific to a single country (regions)
+
+human <- human[-c(156:162), ]
 
 # Save the joined data to a CSV file in your data folder
 write_csv(human, "data/human.csv")
